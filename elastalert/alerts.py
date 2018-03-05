@@ -1440,7 +1440,7 @@ class AlertOver(Alerter):
         if isinstance(post_url, basestring):
             post_url = [post_url]
         self.post_url = post_url
-        self.post_content_format = self.rule.get('content_format', {})
+        self.post_content_format = self.rule.get('content_format', '')
         self.post_payload = self.rule.get('payload', {})
         self.post_static_payload = self.rule.get('static_payload', {})
 
@@ -1452,7 +1452,10 @@ class AlertOver(Alerter):
             content_args = []
             for es_key in self.post_payload:
                 content_args.append(lookup_es_key(match, es_key))
-            payload["content"] = self.post_content_format % content_args
+            try:
+                payload["content"] = self.post_content_format % tuple(content_args)
+            except Exception as e:
+                raise EAException("Error format content alertOver: %s" % e)
             headers = {
                 "Content-Type": "application/json",
                 "Accept": "application/json;charset=utf-8"
