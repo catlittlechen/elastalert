@@ -1431,6 +1431,46 @@ class HTTPPostAlerter(Alerter):
         return {'type': 'http_post',
                 'http_post_webhook_url': self.post_url}
 
+class AlertOver(Alerter):
+    """ Requested elasticsearch indices are sent by HTTP POST. Encoded with JSON. """
+
+    def __init__(self, rule):
+        super(AlertOver, self).__init__(rule)
+        post_url = self.rule.get('endpoint_url')
+        if isinstance(post_url, basestring):
+            post_url = [post_url]
+        self.post_url = post_url
+        self.post_content_format = self.rule.get('content_format', {})
+        self.post_payload = self.rule.get('payload', {})
+        self.post_static_payload = self.rule.get('static_payload', {})
+
+    def alert(self, matches):
+        """ Each match will trigger a POST to the specified endpoint(s). """
+        for match in matches:
+            payload = {}
+            payload.update(self.post_static_payload)
+            content_args = []
+            for es_key in self.post_payload:
+                content_args.append(lookup_es_key(match, es_key))
+            payload["content"] = self.post_content_format % content_args
+            headers = {
+                "Content-Type": "application/json",
+                "Accept": "application/json;charset=utf-8"
+            }
+            for url in self.post_url:
+                try:
+                    response = requests.post(url, data=json.dumps(payload, cls=DateTimeEncoder),
+                                             headers=headers)
+                    response.raise_for_status()
+                except RequestException as e:
+                    raise EAException("Error posting alertOver: %s" % e)
+            elastalert_logger.info("alertOver sent.")
+
+    def get_info(self):
+        return {'type': 'http_post',
+                'http_post_webhook_url': self.post_url}
+
+
 
 class StrideAlerter(Alerter):
     """ Creates a Stride conversation message for each alert """
