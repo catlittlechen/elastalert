@@ -1443,15 +1443,28 @@ class AlertOver(Alerter):
         self.post_content_format = self.rule.get('content_format', '')
         self.post_payload = self.rule.get('payload', {})
         self.post_static_payload = self.rule.get('static_payload', {})
+        self.unique_key = self.rule.get('unique_key', '')
 
     def alert(self, matches):
         """ Each match will trigger a POST to the specified endpoint(s). """
+        unique_value_set = set()
         for match in matches:
             payload = {}
             payload.update(self.post_static_payload)
             content_args = []
+            skip = False
             for es_key in self.post_payload:
-                content_args.append(lookup_es_key(match, es_key))
+                value = lookup_es_key(match, es_key)
+                content_args.append(value)
+                if es_key == self.unique_key:
+                    if value in unique_value_set:
+                        skip = True
+                    else:
+                        unique_value_set.add(value)
+
+            if skip:
+                break
+
             try:
                 payload["content"] = self.post_content_format % tuple(content_args)
             except Exception as e:
