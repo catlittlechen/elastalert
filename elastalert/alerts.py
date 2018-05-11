@@ -1478,8 +1478,8 @@ class AlertOver(Alerter):
                     response = requests.post(url, data=json.dumps(payload, cls=DateTimeEncoder),
                                              headers=headers)
                     response.raise_for_status()
-                except RequestException as e:
-                    raise EAException("Error posting alertOver: %s" % e)
+                except Exception as e:
+                    print("Error posting alertOver: %s" % e)
             elastalert_logger.info("alertOver sent.")
 
     def get_info(self):
