@@ -1440,7 +1440,7 @@ class AlertOver(Alerter):
         if isinstance(post_url, basestring):
             post_url = [post_url]
         self.post_url = post_url
-        self.json = self.rule.get('json', False)
+        self.json = bool(self.rule.get('json', False))
         self.post_content_format = self.rule.get('content_format', '')
         self.post_payload = self.rule.get('payload', {})
         self.post_static_payload = self.rule.get('static_payload', {})
@@ -1452,27 +1452,34 @@ class AlertOver(Alerter):
         for match in matches:
             payload = {}
             payload.update(self.post_static_payload)
+            skip = False
             if self.json:
                 payload["content"] = json.dumps(match)
+                value = lookup_es_key(match, self.unique_key)
+                if value in unique_value_set:
+                    skip = True
+                else:
+                    unique_value_set.add(value)
+                if skip:
+                    break
             else:
                 content_args = []
-            skip = False
-            for es_key in self.post_payload:
-                value = lookup_es_key(match, es_key)
-                content_args.append(value)
-                if es_key == self.unique_key:
-                    if value in unique_value_set:
-                        skip = True
-                    else:
-                        unique_value_set.add(value)
+                for es_key in self.post_payload:
+                    value = lookup_es_key(match, es_key)
+                    content_args.append(value)
+                    if es_key == self.unique_key:
+                        if value in unique_value_set:
+                            skip = True
+                        else:
+                            unique_value_set.add(value)
 
-            if skip:
-                break
+                if skip:
+                    break
 
-            try:
-                payload["content"] = self.post_content_format % tuple(content_args)
-            except Exception as e:
-                raise EAException("Error format content alertOver: %s" % e)
+                try:
+                    payload["content"] = self.post_content_format % tuple(content_args)
+                except Exception as e:
+                    raise EAException("Error format content alertOver: %s" % e)
             headers = {
                 "Content-Type": "application/json",
                 "Accept": "application/json;charset=utf-8"
