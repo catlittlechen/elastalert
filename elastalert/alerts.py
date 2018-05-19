@@ -1453,33 +1453,28 @@ class AlertOver(Alerter):
             payload = {}
             payload.update(self.post_static_payload)
             skip = False
-            if self.json:
-                payload["content"] = json.dumps(match)
-                value = lookup_es_key(match, self.unique_key)
-                if value in unique_value_set:
-                    skip = True
-                else:
-                    unique_value_set.add(value)
-                if skip:
-                    break
-            else:
-                content_args = []
-                for es_key in self.post_payload:
-                    value = lookup_es_key(match, es_key)
-                    content_args.append(value)
-                    if es_key == self.unique_key:
-                        if value in unique_value_set:
-                            skip = True
-                        else:
-                            unique_value_set.add(value)
+            content_args = []
+            for es_key in self.post_payload:
+                value = lookup_es_key(match, es_key)
+                content_args.append(value)
+                if es_key == self.unique_key:
+                    if value in unique_value_set:
+                        skip = True
+                    else:
+                        unique_value_set.add(value)
 
-                if skip:
-                    break
+            if skip:
+                break
 
-                try:
-                    payload["content"] = self.post_content_format % tuple(content_args)
-                except Exception as e:
-                    raise EAException("Error format content alertOver: %s" % e)
+            try:
+                payload["content"] = self.post_content_format % tuple(content_args)
+                if self.json:
+                    for key in ["_type", "@log_name", "num_hits", "@timestamp", "hostname", "_index", "num_matches", "_id"]:
+                        if key in match:
+                            match.pop(key)
+                    payload["content"] = json.dumps(match)
+            except Exception as e:
+                raise EAException("Error format content alertOver: %s" % e)
             headers = {
                 "Content-Type": "application/json",
                 "Accept": "application/json;charset=utf-8"
