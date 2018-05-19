@@ -1440,6 +1440,7 @@ class AlertOver(Alerter):
         if isinstance(post_url, basestring):
             post_url = [post_url]
         self.post_url = post_url
+        self.json = self.rule.get('json', False)
         self.post_content_format = self.rule.get('content_format', '')
         self.post_payload = self.rule.get('payload', {})
         self.post_static_payload = self.rule.get('static_payload', {})
@@ -1451,7 +1452,10 @@ class AlertOver(Alerter):
         for match in matches:
             payload = {}
             payload.update(self.post_static_payload)
-            content_args = []
+            if self.json:
+                payload["content"] = json.dumps(match)
+            else:
+                content_args = []
             skip = False
             for es_key in self.post_payload:
                 value = lookup_es_key(match, es_key)
