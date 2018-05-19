@@ -1444,7 +1444,7 @@ class AlertOver(Alerter):
         self.post_content_format = self.rule.get('content_format', '')
         self.post_payload = self.rule.get('payload', {})
         self.post_static_payload = self.rule.get('static_payload', {})
-        self.unique_key = self.rule.get('unique_key', '')
+        self.unique_key = self.rule.get('unique_key', 'msg')
 
     def alert(self, matches):
         """ Each match will trigger a POST to the specified endpoint(s). """
