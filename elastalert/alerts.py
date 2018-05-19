@@ -1472,7 +1472,7 @@ class AlertOver(Alerter):
                     for key in ["_type", "@log_name", "num_hits", "@timestamp", "hostname", "_index", "num_matches", "_id"]:
                         if key in match:
                             match.pop(key)
-                    payload["content"] = json.dumps(match)
+                    payload["content"] += json.dumps(match)
             except Exception as e:
                 raise EAException("Error format content alertOver: %s" % e)
             headers = {
