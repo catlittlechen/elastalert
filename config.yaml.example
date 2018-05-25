@@ -62,3 +62,6 @@ writeback_index: elastalert_status
 # sending the alert until this time period has elapsed
 alert_time_limit:
   days: 2
+
+# If hit result is hug, limit can save the memory allocated
+hit_limit: 1000

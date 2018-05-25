@@ -134,6 +134,7 @@ class ElastAlerter():
         self.run_every = self.conf['run_every']
         self.alert_time_limit = self.conf['alert_time_limit']
         self.old_query_limit = self.conf['old_query_limit']
+        self.hit_limit = self.conf.get('hit_limit', None)
         self.disable_rules_on_error = self.conf['disable_rules_on_error']
         self.notify_email = self.conf.get('notify_email', [])
         self.from_addr = self.conf.get('from_addr', 'ElastAlert')
@@ -391,11 +392,16 @@ class ElastAlerter():
             self.num_hits,
             len(hits)
         )
-        if self.total_hits > rule.get('max_query_size', self.max_query_size):
-            elastalert_logger.info("%s (scrolling..)" % status_log)
-            rule['scroll_id'] = res['_scroll_id']
+        if self.hit_limit and str(self.hit_limit).isdigit() and int(self.hit_limit) < self.num_hits:
+            elastalert_logger.info("%s (ignoring..)" % status_log)
+            if 'scroll_id' in rule:
+                rule.pop('scroll_id')
         else:
-            elastalert_logger.info(status_log)
+            if self.total_hits > rule.get('max_query_size', self.max_query_size):
+                elastalert_logger.info("%s (scrolling..)" % status_log)
+                rule['scroll_id'] = res['_scroll_id']
+            else:
+                elastalert_logger.info(status_log)
 
         hits = self.process_hits(rule, hits)
 
